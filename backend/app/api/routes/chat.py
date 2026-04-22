@@ -51,6 +51,9 @@ async def sse_generator(rag_service: RAGService, query: str, documents: List,
     full_response = ""
     sources = []
 
+    # Emit session ID first so frontend can sync URL immediately
+    yield f"data: {json.dumps({'type': 'session', 'sessionId': session_id})}\n\n"
+
     async for event in rag_service.generate_response_stream(
         query=query,
         documents=documents,

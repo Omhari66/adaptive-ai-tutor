@@ -106,47 +106,50 @@ function ChatContent() {
       const decoder = new TextDecoder();
       let completeResponse = "";
       let returnedSessionId: string | undefined = undefined;
+      let buffer = "";
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        // Split chunk by lines since SSE sends "data: {...}\n\n"
-        const lines = chunk.split("\n");
+        buffer += decoder.decode(value, { stream: true });
+        // Only process complete lines (SSE lines end with \n)
+        const parts = buffer.split("\n");
+        // Keep the last part in buffer — it might be incomplete
+        buffer = parts.pop() || "";
 
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const dataStr = line.substring(6);
-            if (dataStr === "[DONE]") break;
+        for (const line of parts) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data: ")) continue;
 
-            try {
-              const data = JSON.parse(dataStr);
-              if (data.type === "text") {
-                completeResponse += data.content;
-                // Update the AI message linearly
-                setMessages(prev => prev.map(msg =>
-                  msg.id === aiMsgId ? { ...msg, content: completeResponse } : msg
-                ));
-              } else if (data.type === "sources") {
-                setMessages(prev => prev.map(msg =>
-                  msg.id === aiMsgId ? { ...msg, sources: data.sources } : msg
-                ));
-              } else if (data.type === "session") {
-                // Capture session ID from backend for URL sync
-                returnedSessionId = data.sessionId;
-              } else if (data.type === "topic") {
-                setTopic(data.topic);
-              } else if (data.type === "suggest_mode") {
-                setSuggestMode(data.suggest_mode);
-              } else if (data.type === "confidence_score") {
-                setConfidenceScore(data.confidence_score);
-              } else if (data.type === "done") {
-                // Done parsing
-              }
-            } catch (e) {
-               // Incomplete JSON chunk, skip
+          const dataStr = trimmed.substring(6);
+          if (dataStr === "[DONE]") continue;
+
+          try {
+            const data = JSON.parse(dataStr);
+            if (data.type === "text") {
+              completeResponse += data.content;
+              setMessages(prev => prev.map(msg =>
+                msg.id === aiMsgId ? { ...msg, content: completeResponse } : msg
+              ));
+            } else if (data.type === "sources") {
+              setMessages(prev => prev.map(msg =>
+                msg.id === aiMsgId ? { ...msg, sources: data.sources } : msg
+              ));
+            } else if (data.type === "session") {
+              returnedSessionId = data.sessionId;
+            } else if (data.type === "topic") {
+              setTopic(data.topic);
+            } else if (data.type === "suggest_mode") {
+              setSuggestMode(data.suggest_mode);
+            } else if (data.type === "confidence_score") {
+              setConfidenceScore(data.confidence_score);
+            } else if (data.type === "done") {
+              // Done parsing
             }
+          } catch (e) {
+            // Truly malformed JSON — log for debugging
+            console.warn("SSE parse error on line:", trimmed, e);
           }
         }
       }

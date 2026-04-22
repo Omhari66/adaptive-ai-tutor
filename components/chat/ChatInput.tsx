@@ -48,9 +48,9 @@ export default function ChatInput({ onSendMessage, onUploadComplete, disabled, m
 
   const promptsByMode: Record<string, { label: string, text: string }[]> = {
     NORMAL: [
+      { label: "How to Use", text: "I'm new here! How do I use this app and its modes effectively?" },
       { label: "Plan Day", text: "Hey! Can you help me plan my day practically?" },
       { label: "Release Stress", text: "I'm feeling a bit stressed. Can we chat to clear my mind?" },
-      { label: "Fun Fact", text: "Tell me something fun to lighten the mood! 😊" },
       { label: "Study Routine", text: "Let's create a solid, non-overwhelming study routine." },
     ],
     TEACHER: [
@@ -132,10 +132,14 @@ export default function ChatInput({ onSendMessage, onUploadComplete, disabled, m
         <button
           onClick={handleSubmit}
           disabled={!input.trim() || disabled || isUploading}
-          className="p-2 m-2 h-10 w-10 flex items-center justify-center bg-[var(--color-primary)] text-white rounded-xl shadow hover:bg-[var(--color-primary)]/90 transition-colors disabled:opacity-50"
+          className="p-2 m-2 h-10 w-10 flex items-center justify-center bg-[var(--color-primary)] text-white rounded-xl shadow hover:bg-[var(--color-primary)]/90 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           aria-label="Send Message"
         >
-          <Send className="w-5 h-5 ml-0.5" />
+          {disabled ? (
+            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Send className="w-5 h-5 ml-0.5" />
+          )}
         </button>
       </div>
 
